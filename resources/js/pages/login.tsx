@@ -1,23 +1,23 @@
-import { Head, useForm } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import { Head, useForm } from "@inertiajs/react";
+import type { FormEvent } from "react";
 
-import GoogleIcon from '../components/GoogleIcon';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import { google } from '../routes/auth';
+import GoogleIcon from "../components/GoogleIcon";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import { google } from "../routes/auth";
 
 export default function Login() {
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
-        password: '',
+        email: "",
+        password: "",
     });
 
     function submit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
-        post('/login', {
+        post("/login", {
             preserveScroll: true,
-            onFinish: () => reset('password'),
+            onFinish: () => reset("password"),
         });
     }
 
@@ -52,7 +52,7 @@ export default function Login() {
                             </h1>
                             <p className="text-body-subtle mt-1 text-sm">
                                 Masuk sebagai admin, atau lanjutkan dengan akun
-                                Google
+                                Google anda
                             </p>
                         </div>
 
@@ -69,7 +69,7 @@ export default function Login() {
                                     type="email"
                                     value={data.email}
                                     onChange={(e) =>
-                                        setData('email', e.target.value)
+                                        setData("email", e.target.value)
                                     }
                                     autoComplete="email"
                                     placeholder="admin@biwraquiz.test"
@@ -94,7 +94,7 @@ export default function Login() {
                                     type="password"
                                     value={data.password}
                                     onChange={(e) =>
-                                        setData('password', e.target.value)
+                                        setData("password", e.target.value)
                                     }
                                     autoComplete="current-password"
                                     placeholder="••••••••"
@@ -142,7 +142,7 @@ export default function Login() {
                 <span>Ketentuan</span>
                 <span aria-hidden="true">·</span>
                 <span>
-                    Ilustrasi:{' '}
+                    Ilustrasi:{" "}
                     <a
                         href="https://storyset.com"
                         target="_blank"
