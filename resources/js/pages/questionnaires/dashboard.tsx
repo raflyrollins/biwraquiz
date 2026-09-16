@@ -135,7 +135,7 @@ export default function QuestionnaireDashboard() {
     }, [aggregates.per_question]);
 
     const requestExport = (type: 'pdf' | 'excel') => {
-        router.post(storeExport({ questionnaire: questionnaire.id }).url, {
+        router.post(storeExport({ questionnaire: questionnaire.uuid }).url, {
             type,
         });
     };
@@ -357,7 +357,7 @@ export default function QuestionnaireDashboard() {
                                                         router.delete(
                                                             destroyResponse({
                                                                 questionnaire:
-                                                                    questionnaire.id,
+                                                                    questionnaire.uuid,
                                                                 response:
                                                                     response.id,
                                                             }).url,

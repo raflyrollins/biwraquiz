@@ -100,7 +100,7 @@ class ResponseController extends Controller
 
         return Inertia::render('questionnaires/dashboard', [
             'questionnaire' => $questionnaire->only(['id', 'uuid', 'title', 'description', 'status']),
-            'share_url' => route('fill.create', $questionnaire->uuid),
+            'share_url' => rtrim((string) config('app.url'), '/').route('fill.create', $questionnaire->uuid, false),
             'aggregates' => $aggregates,
             'responses' => $responses,
             'exports' => $exports,

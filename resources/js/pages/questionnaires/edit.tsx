@@ -99,7 +99,7 @@ export default function QuestionnaireEdit() {
 
         if (isEdit) {
             router.put(
-                update({ questionnaire: questionnaire.id }).url,
+                update({ questionnaire: questionnaire.uuid }).url,
                 payload,
                 { preserveScroll: true },
             );
@@ -128,7 +128,7 @@ export default function QuestionnaireEdit() {
                             variant="ghost"
                             asLink={
                                 responses({
-                                    questionnaire: questionnaire.id,
+                                    questionnaire: questionnaire.uuid,
                                 }).url
                             }
                         >
@@ -330,14 +330,14 @@ export default function QuestionnaireEdit() {
                                                 router.post(
                                                     close({
                                                         questionnaire:
-                                                            questionnaire.id,
+                                                            questionnaire.uuid,
                                                     }).url,
                                                 );
                                             } else {
                                                 router.post(
                                                     publish({
                                                         questionnaire:
-                                                            questionnaire.id,
+                                                            questionnaire.uuid,
                                                     }).url,
                                                 );
                                             }

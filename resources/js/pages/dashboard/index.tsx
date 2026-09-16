@@ -211,7 +211,7 @@ function RecentList() {
                             size="sm"
                             asLink={
                                 responses({
-                                    questionnaire: questionnaire.id,
+                                    questionnaire: questionnaire.uuid,
                                 }).url
                             }
                             className="flex-1"

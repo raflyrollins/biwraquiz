@@ -44,13 +44,13 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::resource('questionnaires', QuestionnaireController::class)->except(['show']);
-    Route::post('questionnaires/{questionnaire}/publish', [QuestionnaireController::class, 'publish'])->name('questionnaires.publish');
-    Route::post('questionnaires/{questionnaire}/close', [QuestionnaireController::class, 'close'])->name('questionnaires.close');
+    Route::resource('questionnaires', QuestionnaireController::class)->except(['show'])->parameters(['questionnaires' => 'questionnaire:uuid']);
+    Route::post('questionnaires/{questionnaire:uuid}/publish', [QuestionnaireController::class, 'publish'])->name('questionnaires.publish');
+    Route::post('questionnaires/{questionnaire:uuid}/close', [QuestionnaireController::class, 'close'])->name('questionnaires.close');
 
-    Route::get('questionnaires/{questionnaire}/responses', [ResponseController::class, 'index'])->name('questionnaires.responses');
-    Route::delete('questionnaires/{questionnaire}/responses/{response}', [ResponseController::class, 'destroy'])->name('questionnaires.responses.destroy');
+    Route::get('questionnaires/{questionnaire:uuid}/responses', [ResponseController::class, 'index'])->name('questionnaires.responses');
+    Route::delete('questionnaires/{questionnaire:uuid}/responses/{response}', [ResponseController::class, 'destroy'])->name('questionnaires.responses.destroy');
 
-    Route::post('questionnaires/{questionnaire}/exports', [ExportController::class, 'store'])->name('questionnaires.exports.store');
+    Route::post('questionnaires/{questionnaire:uuid}/exports', [ExportController::class, 'store'])->name('questionnaires.exports.store');
     Route::get('exports/{export:uuid}/download', [ExportController::class, 'download'])->name('exports.download');
 });

@@ -98,4 +98,9 @@ class Questionnaire extends Model
     {
         $query->where('status', self::STATUS_PUBLISHED);
     }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
 }

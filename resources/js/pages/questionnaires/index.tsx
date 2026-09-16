@@ -65,8 +65,8 @@ export default function QuestionnaireIndex() {
     const toggleStatus = (item: QuestionnaireCard) => {
         const route =
             item.status === 'published'
-                ? close({ questionnaire: item.id })
-                : publish({ questionnaire: item.id });
+                ? close({ questionnaire: item.uuid })
+                : publish({ questionnaire: item.uuid });
         router.post(route.url);
     };
 
@@ -121,7 +121,7 @@ export default function QuestionnaireIndex() {
                                 size="sm"
                                 asLink={
                                     responses({
-                                        questionnaire: item.id,
+                                        questionnaire: item.uuid,
                                     }).url
                                 }
                             >
@@ -130,7 +130,7 @@ export default function QuestionnaireIndex() {
                             <Button
                                 size="sm"
                                 variant="ghost"
-                                asLink={edit({ questionnaire: item.id }).url}
+                                asLink={edit({ questionnaire: item.uuid }).url}
                             >
                                 Edit
                             </Button>
@@ -199,7 +199,7 @@ export default function QuestionnaireIndex() {
                                 if (toDelete) {
                                     router.delete(
                                         destroy({
-                                            questionnaire: toDelete.id,
+                                            questionnaire: toDelete.uuid,
                                         }).url,
                                     );
                                     setToDelete(null);
