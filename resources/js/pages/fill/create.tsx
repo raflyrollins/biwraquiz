@@ -45,6 +45,7 @@ export default function FillPage() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [menuOpen, setMenuOpen] = useState(false);
     const [incompleteOpen, setIncompleteOpen] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
     const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
     const shakeControls = useAnimation();
 
@@ -94,14 +95,17 @@ export default function FillPage() {
         return () => observer.disconnect();
     }, [questions]);
 
+    const modalOpen = incompleteOpen || confirmOpen;
+
     useEffect(() => {
-        if (!incompleteOpen) {
+        if (!modalOpen) {
             return;
         }
 
         const onKeydown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' && saving === null) {
                 setIncompleteOpen(false);
+                setConfirmOpen(false);
             }
         };
 
@@ -112,7 +116,7 @@ export default function FillPage() {
             document.removeEventListener('keydown', onKeydown);
             document.body.style.overflow = '';
         };
-    }, [incompleteOpen]);
+    }, [modalOpen, saving]);
 
     const jumpToQuestion = (index: number) => {
         const el = questionRefs.current[index];
@@ -131,13 +135,26 @@ export default function FillPage() {
         router.post(
             store({ questionnaire: questionnaire.uuid }).url,
             { answers },
-            { onFinish: () => setSaving(null) },
+            {
+                onFinish: () => {
+                    setSaving(null);
+                    setConfirmOpen(false);
+                    setIncompleteOpen(false);
+                },
+            },
         );
     };
 
+    useEffect(() => {
+        if (response?.status === 'completed') {
+            setConfirmOpen(false);
+            setIncompleteOpen(false);
+        }
+    }, [response?.status]);
+
     const submitFinal = () => {
         if (canSubmitFinal) {
-            save(false);
+            setConfirmOpen(true);
             return;
         }
 
@@ -146,6 +163,13 @@ export default function FillPage() {
             { duration: 0.4, ease: 'easeInOut' },
         );
         setIncompleteOpen(true);
+    };
+
+    const confirmFinal = () => {
+        if (saving !== null) {
+            return;
+        }
+        save(false);
     };
 
     const goToUnanswered = (index: number) => {
@@ -751,6 +775,213 @@ export default function FillPage() {
                                     }}
                                 >
                                     Simpan Draf
+                                </Button>
+                            </div>
+                        </m.div>
+                    </div>
+                ) : null}
+
+                {confirmOpen ? (
+                    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+                        <m.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.18, ease: 'easeOut' }}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                            onClick={() => {
+                                if (saving === null) {
+                                    setConfirmOpen(false);
+                                }
+                            }}
+                        />
+                        <m.div
+                            initial={{ opacity: 0, y: 48, scale: 0.94 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 32, scale: 0.96 }}
+                            transition={{
+                                type: 'spring',
+                                stiffness: 300,
+                                damping: 28,
+                            }}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="confirm-title"
+                            className="border-border-default bg-neutral-primary-soft relative z-10 max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border-t p-6 pb-8 shadow-xl sm:rounded-2xl sm:border sm:pb-6"
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setConfirmOpen(false)}
+                                disabled={saving !== null}
+                                aria-label="Tutup"
+                                className="text-body hover:bg-neutral-tertiary-soft hover:text-heading absolute top-4 right-4 rounded-full p-1.5 transition-colors disabled:pointer-events-none disabled:opacity-50"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                >
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+
+                            <div className="text-center">
+                                <div className="relative mx-auto flex h-32 w-32 items-center justify-center">
+                                    <m.div
+                                        className="bg-brand/10 absolute inset-0 rounded-full"
+                                        animate={{ scale: [1, 1.1, 1] }}
+                                        transition={{
+                                            duration: 2.6,
+                                            repeat: Infinity,
+                                            ease: 'easeInOut',
+                                        }}
+                                    />
+                                    <m.div
+                                        className="border-brand/30 absolute inset-1 rounded-full border border-dashed"
+                                        animate={{ rotate: 360 }}
+                                        transition={{
+                                            duration: 20,
+                                            repeat: Infinity,
+                                            ease: 'linear',
+                                        }}
+                                    />
+                                    <m.img
+                                        src="/images/online-review.svg"
+                                        alt="Ilustrasi konfirmasi pengiriman jawaban"
+                                        className="relative h-28 w-auto"
+                                        initial={{ scale: 0.9, opacity: 0 }}
+                                        animate={{
+                                            scale: 1,
+                                            opacity: 1,
+                                            y: [0, -6, 0],
+                                        }}
+                                        transition={{
+                                            opacity: { duration: 0.3 },
+                                            scale: {
+                                                type: 'spring',
+                                                stiffness: 260,
+                                                damping: 20,
+                                            },
+                                            y: {
+                                                duration: 3,
+                                                repeat: Infinity,
+                                                ease: 'easeInOut',
+                                                delay: 0.3,
+                                            },
+                                        }}
+                                    />
+                                    <m.span
+                                        initial={{ scale: 0, rotate: -40 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        transition={{
+                                            type: 'spring',
+                                            stiffness: 420,
+                                            damping: 16,
+                                            delay: 0.2,
+                                        }}
+                                        className="bg-brand text-on-brand absolute -top-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full shadow-lg"
+                                    >
+                                        <svg
+                                            width="20"
+                                            height="20"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <m.path
+                                                d="M20 6L9 17l-5-5"
+                                                initial={{ pathLength: 0 }}
+                                                animate={{ pathLength: 1 }}
+                                                transition={{
+                                                    duration: 0.4,
+                                                    delay: 0.5,
+                                                    ease: 'easeOut',
+                                                }}
+                                            />
+                                        </svg>
+                                    </m.span>
+                                </div>
+
+                                <h2
+                                    id="confirm-title"
+                                    className="text-heading mt-4 text-xl font-bold tracking-tight"
+                                >
+                                    Kirim Jawaban?
+                                </h2>
+                                <p className="text-body mx-auto mt-2 max-w-xs text-sm leading-relaxed">
+                                    Semua soal sudah kamu jawab. Periksa kembali
+                                    sebelum dikirim — jawaban yang sudah
+                                    terkirim tidak dapat diubah lagi.
+                                </p>
+                            </div>
+
+                            <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+                                {[
+                                    {
+                                        label: 'Total Soal',
+                                        value: questions.length,
+                                    },
+                                    { label: 'Terjawab', value: answerCount },
+                                    { label: 'Progres', value: `${percent}%` },
+                                ].map((stat, index) => (
+                                    <m.div
+                                        key={stat.label}
+                                        initial={{ opacity: 0, y: 12 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{
+                                            duration: 0.3,
+                                            delay: 0.15 + index * 0.07,
+                                            ease: 'easeOut',
+                                        }}
+                                        className="border-border-default bg-neutral-secondary-soft rounded-xl border px-2 py-3 text-center"
+                                    >
+                                        <p className="text-heading text-lg font-bold tabular-nums">
+                                            {stat.value}
+                                        </p>
+                                        <p className="text-body-subtle mt-0.5 text-[11px]">
+                                            {stat.label}
+                                        </p>
+                                    </m.div>
+                                ))}
+                            </div>
+
+                            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                                <Button
+                                    variant="ghost"
+                                    className="sm:min-w-40"
+                                    disabled={saving !== null}
+                                    onClick={() => setConfirmOpen(false)}
+                                >
+                                    Periksa Lagi
+                                </Button>
+                                <Button
+                                    className="sm:min-w-40"
+                                    disabled={saving !== null}
+                                    onClick={confirmFinal}
+                                >
+                                    {saving === 'final' ? (
+                                        <>
+                                            <m.span
+                                                className="h-4 w-4 rounded-full border-2 border-current border-t-transparent"
+                                                animate={{ rotate: 360 }}
+                                                transition={{
+                                                    duration: 0.7,
+                                                    repeat: Infinity,
+                                                    ease: 'linear',
+                                                }}
+                                            />
+                                            Mengirim...
+                                        </>
+                                    ) : (
+                                        'Ya, Kirim Sekarang'
+                                    )}
                                 </Button>
                             </div>
                         </m.div>

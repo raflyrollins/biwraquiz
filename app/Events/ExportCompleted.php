@@ -28,6 +28,7 @@ class ExportCompleted implements ShouldBroadcast
         return [
             'export' => [
                 'id' => $this->export->id,
+                'uuid' => $this->export->uuid,
                 'type' => $this->export->type,
                 'status' => $this->export->status,
                 'file_path' => $this->export->file_path,

@@ -1,7 +1,10 @@
 import { router, usePage } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
-import { useMemo, useState } from 'react';
+import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
+
+import { cn } from '../../lib/utils';
 import {
     Bar,
     BarChart,
@@ -71,6 +74,13 @@ type ResponseSavedPayload = {
     aggregates: Aggregates;
 };
 
+type ExportAlert = {
+    id: number;
+    type: 'pdf' | 'excel';
+    uuid: string;
+    status: 'completed' | 'failed';
+};
+
 export default function QuestionnaireDashboard() {
     const page = usePage<Props>();
     const {
@@ -102,6 +112,77 @@ export default function QuestionnaireDashboard() {
         },
         [auth.user?.id],
     );
+
+    const [alerts, setAlerts] = useState<ExportAlert[]>([]);
+    const [dismissedProgress, setDismissedProgress] = useState<number[]>([]);
+    const alertedIds = useRef<Set<number>>(
+        new Set(
+            exports
+                .filter(
+                    (item) =>
+                        item.status === 'completed' || item.status === 'failed',
+                )
+                .map((item) => item.id),
+        ),
+    );
+    const alertTimers = useRef<number[]>([]);
+
+    useEffect(() => {
+        const finished = exports.filter(
+            (item) =>
+                (item.status === 'completed' || item.status === 'failed') &&
+                !alertedIds.current.has(item.id),
+        );
+        if (finished.length === 0) {
+            return;
+        }
+
+        for (const item of finished) {
+            alertedIds.current.add(item.id);
+        }
+
+        setAlerts((prev) => [
+            ...finished.map((item) => ({
+                id: item.id,
+                type: item.type,
+                uuid: item.uuid,
+                status: item.status as ExportAlert['status'],
+            })),
+            ...prev,
+        ]);
+
+        for (const item of finished) {
+            const timer = window.setTimeout(() => {
+                setAlerts((prev) =>
+                    prev.filter((alert) => alert.id !== item.id),
+                );
+            }, 9000);
+            alertTimers.current.push(timer);
+        }
+    }, [exports]);
+
+    useEffect(
+        () => () => {
+            for (const timer of alertTimers.current) {
+                window.clearTimeout(timer);
+            }
+        },
+        [],
+    );
+
+    const progressExports = exports.filter(
+        (item) =>
+            (item.status === 'pending' || item.status === 'processing') &&
+            !dismissedProgress.includes(item.id),
+    );
+
+    const dismissProgress = (id: number) => {
+        setDismissedProgress((prev) => [...prev, id]);
+    };
+
+    const dismissAlert = (id: number) => {
+        setAlerts((prev) => prev.filter((alert) => alert.id !== id));
+    };
 
     const barData = useMemo(
         () =>
@@ -189,6 +270,13 @@ export default function QuestionnaireDashboard() {
                 </>
             }
         >
+            <ExportToasts
+                progress={progressExports}
+                alerts={alerts}
+                onDismissProgress={dismissProgress}
+                onDismissAlert={dismissAlert}
+            />
+
             {questionnaire.description ? (
                 <p className="text-body-subtle -mt-2 mb-6 max-w-2xl text-sm">
                     {questionnaire.description}
@@ -541,6 +629,200 @@ export default function QuestionnaireDashboard() {
                 </ul>
             </Card>
         </AppLayout>
+    );
+}
+
+function ExportToasts({
+    progress,
+    alerts,
+    onDismissProgress,
+    onDismissAlert,
+}: {
+    progress: ExportItem[];
+    alerts: ExportAlert[];
+    onDismissProgress: (id: number) => void;
+    onDismissAlert: (id: number) => void;
+}) {
+    return (
+        <LazyMotion features={domAnimation}>
+            <div className="pointer-events-none fixed top-16 right-4 z-40 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 lg:right-8">
+                <AnimatePresence>
+                    {alerts.map((alert) => (
+                        <m.div
+                            key={`alert-${alert.id}`}
+                            layout
+                            initial={{ opacity: 0, y: -16, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, x: 32, scale: 0.96 }}
+                            transition={{
+                                type: 'spring',
+                                stiffness: 380,
+                                damping: 30,
+                            }}
+                            role="status"
+                            className={cn(
+                                'pointer-events-auto flex items-start gap-3 rounded-none border p-4 shadow-lg',
+                                alert.status === 'completed'
+                                    ? 'border-border-success bg-success-soft text-fg-success-strong'
+                                    : 'border-border-danger bg-danger-soft text-fg-danger-strong',
+                            )}
+                        >
+                            <span
+                                className={cn(
+                                    'mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full text-white',
+                                    alert.status === 'completed'
+                                        ? 'bg-success'
+                                        : 'bg-danger',
+                                )}
+                            >
+                                {alert.status === 'completed' ? (
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="3"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M20 6L9 17l-5-5" />
+                                    </svg>
+                                ) : (
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                    >
+                                        <path d="M12 8v5M12 16h.01" />
+                                        <circle cx="12" cy="12" r="9" />
+                                    </svg>
+                                )}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-heading text-sm font-semibold">
+                                    {alert.status === 'completed'
+                                        ? `Ekspor ${alert.type === 'pdf' ? 'PDF' : 'Excel'} selesai!`
+                                        : `Ekspor ${alert.type === 'pdf' ? 'PDF' : 'Excel'} gagal`}
+                                </p>
+                                <p className="mt-0.5 text-xs opacity-90">
+                                    {alert.status === 'completed'
+                                        ? 'File siap diunduh.'
+                                        : 'Terjadi kesalahan saat memproses ekspor.'}
+                                </p>
+                                {alert.status === 'completed' ? (
+                                    <a
+                                        href={
+                                            download({ export: alert.uuid }).url
+                                        }
+                                        className="text-fg-brand hover:bg-brand-softer mt-2 inline-flex rounded-none px-2 py-1 text-xs font-semibold"
+                                    >
+                                        Unduh Sekarang
+                                    </a>
+                                ) : null}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => onDismissAlert(alert.id)}
+                                aria-label="Tutup notifikasi"
+                                className="text-heading/60 hover:text-heading rounded-none p-1 transition-colors"
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                >
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </m.div>
+                    ))}
+
+                    {progress.map((item) => (
+                        <m.div
+                            key={`progress-${item.id}`}
+                            layout
+                            initial={{ opacity: 0, y: -16, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, x: 32, scale: 0.96 }}
+                            transition={{
+                                type: 'spring',
+                                stiffness: 380,
+                                damping: 30,
+                            }}
+                            role="status"
+                            className="border-border-default bg-neutral-primary-soft pointer-events-auto w-full rounded-none border p-4 shadow-lg"
+                        >
+                            <div className="flex items-start gap-3">
+                                <span className="bg-brand-soft text-fg-brand-strong mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                                    </svg>
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-heading text-sm font-semibold">
+                                        Ekspor{' '}
+                                        {item.type === 'pdf' ? 'PDF' : 'Excel'}
+                                    </p>
+                                    <p className="text-body-subtle mt-0.5 text-xs">
+                                        {item.status === 'processing'
+                                            ? 'Sedang memproses data...'
+                                            : 'Menunggu antrian...'}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => onDismissProgress(item.id)}
+                                    aria-label="Tutup notifikasi"
+                                    className="text-heading/60 hover:text-heading rounded-none p-1 transition-colors"
+                                >
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                    >
+                                        <path d="M18 6L6 18M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="bg-neutral-tertiary mt-3 h-1.5 w-full overflow-hidden rounded-full">
+                                <m.div
+                                    className="bg-brand h-full w-1/3 rounded-full"
+                                    animate={{ x: ['-110%', '410%'] }}
+                                    transition={{
+                                        duration: 1.2,
+                                        repeat: Infinity,
+                                        ease: 'easeInOut',
+                                    }}
+                                />
+                            </div>
+                        </m.div>
+                    ))}
+                </AnimatePresence>
+            </div>
+        </LazyMotion>
     );
 }
 
