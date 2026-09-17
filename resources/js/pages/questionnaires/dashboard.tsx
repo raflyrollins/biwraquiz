@@ -71,7 +71,6 @@ type Props = {
 type ResponseSavedPayload = {
     questionnaire_id: number;
     submitted_by: string;
-    aggregates: Aggregates;
 };
 
 type ExportAlert = {
@@ -83,23 +82,27 @@ type ExportAlert = {
 
 export default function QuestionnaireDashboard() {
     const page = usePage<Props>();
-    const {
-        questionnaire,
-        share_url,
-        aggregates: initialAggregates,
-        responses,
-        exports,
-    } = page.props;
+    const { questionnaire, share_url, aggregates, responses, exports } =
+        page.props;
     const { auth } = usePage().props;
 
-    const [aggregates, setAggregates] = useState(initialAggregates);
+    const reloadTimer = useRef<number | null>(null);
+
+    const scheduleDashboardReload = () => {
+        if (reloadTimer.current !== null) {
+            window.clearTimeout(reloadTimer.current);
+        }
+        reloadTimer.current = window.setTimeout(() => {
+            reloadTimer.current = null;
+            router.reload({ only: ['aggregates', 'responses'] });
+        }, 800);
+    };
 
     useEcho<ResponseSavedPayload>(
         `questionnaire.${questionnaire.id}`,
         'ResponseSaved',
-        (payload) => {
-            setAggregates(payload.aggregates);
-            router.reload({ only: ['responses'] });
+        () => {
+            scheduleDashboardReload();
         },
         [questionnaire.id],
     );
@@ -165,6 +168,9 @@ export default function QuestionnaireDashboard() {
         () => () => {
             for (const timer of alertTimers.current) {
                 window.clearTimeout(timer);
+            }
+            if (reloadTimer.current !== null) {
+                window.clearTimeout(reloadTimer.current);
             }
         },
         [],

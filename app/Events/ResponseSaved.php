@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\Questionnaire;
-use App\Services\QuestionnaireAggregator;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -32,7 +31,6 @@ class ResponseSaved implements ShouldBroadcast
         return [
             'questionnaire_id' => $this->questionnaire->id,
             'submitted_by' => $this->submittedByName,
-            'aggregates' => app(QuestionnaireAggregator::class)->aggregate($this->questionnaire),
         ];
     }
 }

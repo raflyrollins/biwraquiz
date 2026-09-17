@@ -40,7 +40,9 @@ Route::middleware('auth')->group(function () {
     Route::get('my', [ResponseController::class, 'mine'])->name('my.index');
 
     Route::get('fill/{questionnaire:uuid}', [ResponseController::class, 'create'])->name('fill.create');
-    Route::post('fill/{questionnaire:uuid}', [ResponseController::class, 'store'])->name('fill.store');
+    Route::post('fill/{questionnaire:uuid}', [ResponseController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('fill.store');
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {

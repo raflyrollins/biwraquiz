@@ -8,6 +8,7 @@ use App\Models\Response;
 use App\Services\QuestionnaireAggregator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule as ValidationRule;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -82,21 +83,40 @@ class ResponseController extends Controller
             return back()->with('error', 'Kamu sudah mengisi kuesioner ini.');
         }
 
+        $now = now();
+        $rows = [];
         foreach ($validated['answers'] as $questionId => $value) {
-            $response->answers()->updateOrCreate(
-                ['question_id' => (int) $questionId],
-                ['value' => (int) $value],
-            );
+            $rows[] = [
+                'response_id' => $response->id,
+                'question_id' => (int) $questionId,
+                'value' => (int) $value,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
         }
 
-        $questionCount = $questionnaire->questions()->count();
+        $completed = DB::transaction(function () use ($rows, $response, $questionnaire, $now): bool {
+            $response->answers()->upsert(
+                $rows,
+                ['response_id', 'question_id'],
+                ['value', 'updated_at'],
+            );
 
-        if ($questionCount > 0 && count($validated['answers']) === $questionCount) {
-            $response->update([
-                'status' => Response::STATUS_COMPLETED,
-                'submitted_at' => now(),
-            ]);
+            $questionCount = $questionnaire->questions()->count();
 
+            if ($questionCount > 0 && count($rows) === $questionCount) {
+                $response->update([
+                    'status' => Response::STATUS_COMPLETED,
+                    'submitted_at' => $now,
+                ]);
+
+                return true;
+            }
+
+            return false;
+        });
+
+        if ($completed) {
             ResponseSaved::dispatch($questionnaire, $request->user()->name);
         }
 
