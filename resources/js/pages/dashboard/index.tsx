@@ -86,7 +86,7 @@ const statItems: { key: keyof Stats; label: string; icon: React.ReactNode }[] =
     ];
 
 export default function DashboardIndex() {
-    const { auth } = usePage().props;
+    const { stats } = usePage<{ stats?: Stats }>().props;
 
     return (
         <AppLayout title="Dashboard">
@@ -94,10 +94,7 @@ export default function DashboardIndex() {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {statItems.map((item) => {
-                    const value =
-                        (auth as unknown as { stats?: Stats }).stats?.[
-                            item.key
-                        ] ?? 0;
+                    const value = stats?.[item.key] ?? 0;
                     return (
                         <Stat
                             key={item.key}
@@ -190,7 +187,7 @@ function RecentList() {
                     className="flex flex-col gap-4 p-5"
                 >
                     <div className="flex items-start justify-between gap-3">
-                        <h3 className="text-heading truncate text-base font-semibold">
+                        <h3 className="text-heading min-w-0 truncate text-base font-semibold">
                             {questionnaire.title}
                         </h3>
                         <StatusBadge status={questionnaire.status} />

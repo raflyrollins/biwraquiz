@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { dashboard } from '../routes';
+import my from '../routes/my';
 import { index as questionnairesIndex, create } from '../routes/questionnaires';
 import { cn } from '../lib/utils';
 
-const navigation = [
+const adminNavigation = [
     {
         name: 'Dashboard',
         href: dashboard.url(),
@@ -55,6 +56,26 @@ const navigation = [
                 strokeWidth="2"
             >
                 <path d="M12 5v14M5 12h14" />
+            </svg>
+        ),
+    },
+];
+
+const myNavigation = [
+    {
+        name: 'Kuesioner Saya',
+        href: my.index.url(),
+        icon: (
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+            >
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
         ),
     },
@@ -117,9 +138,16 @@ export default function AppLayout({
 }) {
     const { auth } = usePage().props;
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const currentUrl = window.location.pathname;
+    const currentUrl = usePage().url.split('?')[0];
+
+    const navigation = auth.user?.is_admin
+        ? [...adminNavigation, ...myNavigation]
+        : myNavigation;
 
     const isActive = (href: string) => {
+        if (href === my.index.url()) {
+            return currentUrl === '/my';
+        }
         if (href === dashboard.url()) {
             return currentUrl === '/dashboard';
         }
@@ -144,8 +172,10 @@ export default function AppLayout({
 
             <aside
                 className={cn(
-                    'border-border-default bg-neutral-primary-soft fixed inset-y-0 left-0 z-30 w-64 border-r transition-transform duration-200 lg:static lg:translate-x-0',
-                    sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+                    'border-border-default bg-neutral-primary-soft fixed inset-y-0 left-0 z-30 w-64 border-r transition-transform duration-200',
+                    sidebarOpen
+                        ? 'translate-x-0'
+                        : '-translate-x-full lg:translate-x-0',
                 )}
             >
                 <div className="flex h-full flex-col overflow-y-auto px-3 py-4">
@@ -232,8 +262,8 @@ export default function AppLayout({
                 />
             ) : null}
 
-            <div className="flex min-h-screen flex-1 flex-col">
-                <header className="border-border-default bg-neutral-primary-soft sticky top-0 z-10 flex items-center gap-4 border-b px-4 py-3 lg:px-8">
+            <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-64">
+                <header className="border-border-default bg-neutral-primary-soft sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b px-4 py-3 lg:px-8">
                     <button
                         type="button"
                         className="text-heading hover:bg-neutral-tertiary-soft rounded-none p-2 transition-colors lg:hidden"
@@ -262,12 +292,12 @@ export default function AppLayout({
                             </span>
                         )}
                     </div>
-                    <div className="ml-auto flex items-center gap-3">
+                    <div className="ml-auto flex flex-wrap items-center justify-end gap-2 sm:gap-3">
                         {actions}
                     </div>
                 </header>
 
-                <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">
+                <main className="min-w-0 flex-1 px-4 py-6 lg:px-8 lg:py-8">
                     {children}
                 </main>
             </div>

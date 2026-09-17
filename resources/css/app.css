@@ -10,6 +10,10 @@
     --radius-4xl: 36px;
 }
 
+button {
+    @apply cursor-pointer;
+}
+
 :root {
     --tw-neutral-primary-soft: #ffffff;
     --tw-neutral-primary: #ffffff;

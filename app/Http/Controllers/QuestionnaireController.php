@@ -24,7 +24,11 @@ class QuestionnaireController extends Controller
             ->withCount('questions')
             ->orderByDesc('updated_at')
             ->paginate(9)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(fn (Questionnaire $questionnaire): array => [
+                ...$questionnaire->only(['id', 'uuid', 'title', 'description', 'status', 'questions_count', 'responses_count', 'updated_at']),
+                'share_url' => $this->shareUrl($questionnaire),
+            ]);
 
         return Inertia::render('questionnaires/index', [
             'questionnaires' => $questionnaires,
@@ -56,8 +60,18 @@ class QuestionnaireController extends Controller
     {
         abort_unless($questionnaire->user_id === $request->user()->id, 403);
 
+        $questionnaire->load('questions');
+
         return Inertia::render('questionnaires/edit', [
-            'questionnaire' => $questionnaire->load('questions'),
+            'questionnaire' => [
+                'id' => $questionnaire->id,
+                'uuid' => $questionnaire->uuid,
+                'title' => $questionnaire->title,
+                'description' => $questionnaire->description,
+                'status' => $questionnaire->status,
+                'questions' => $questionnaire->questions,
+                'share_url' => $this->shareUrl($questionnaire),
+            ],
         ]);
     }
 
@@ -146,6 +160,11 @@ class QuestionnaireController extends Controller
             'questions.*.id' => ['nullable', 'integer'],
             'questions.*.text' => ['required', 'string', 'max:1000'],
         ]);
+    }
+
+    private function shareUrl(Questionnaire $questionnaire): string
+    {
+        return rtrim((string) config('app.url'), '/').route('fill.create', $questionnaire->uuid, false);
     }
 
     /**

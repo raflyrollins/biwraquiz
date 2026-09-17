@@ -37,6 +37,8 @@ Route::post('/logout', function () {
 })->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function () {
+    Route::get('my', [ResponseController::class, 'mine'])->name('my.index');
+
     Route::get('fill/{questionnaire:uuid}', [ResponseController::class, 'create'])->name('fill.create');
     Route::post('fill/{questionnaire:uuid}', [ResponseController::class, 'store'])->name('fill.store');
 });

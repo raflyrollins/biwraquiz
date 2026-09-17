@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $submitted_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read int $answers_count
  * @property-read string $date
  * @property-read int $count
  */

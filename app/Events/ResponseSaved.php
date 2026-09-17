@@ -3,23 +3,20 @@
 namespace App\Events;
 
 use App\Models\Questionnaire;
+use App\Services\QuestionnaireAggregator;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ResponseSaved implements ShouldBroadcastNow
+class ResponseSaved implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    /**
-     * @param  array<string, mixed>  $aggregates
-     */
     public function __construct(
         public Questionnaire $questionnaire,
-        public array $aggregates,
         public string $submittedByName,
     ) {}
 
@@ -35,7 +32,7 @@ class ResponseSaved implements ShouldBroadcastNow
         return [
             'questionnaire_id' => $this->questionnaire->id,
             'submitted_by' => $this->submittedByName,
-            'aggregates' => $this->aggregates,
+            'aggregates' => app(QuestionnaireAggregator::class)->aggregate($this->questionnaire),
         ];
     }
 }

@@ -1,12 +1,11 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import AppLayout from '../../components/AppLayout';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { create as fillPage } from '../../routes/fill';
 import {
     close,
     index,
@@ -25,39 +24,38 @@ type Props = {
         description: string | null;
         status: QuestionnaireStatus;
         questions: QuestionItem[];
+        share_url: string;
     };
 };
 
 type QuestionRow = { key: string; id?: number; text: string };
 
-const freshKey = (): string =>
-    `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const initialRows = (questionnaire?: Props['questionnaire']): QuestionRow[] =>
+    questionnaire
+        ? questionnaire.questions.map((q) => ({
+              key: `question-${q.id}`,
+              id: q.id,
+              text: q.text,
+          }))
+        : [{ key: 'new-0', text: '' }];
 
 export default function QuestionnaireEdit() {
     const { questionnaire, errors } = usePage<Props>().props;
-
-    const initialQuestions: QuestionRow[] = useMemo(
-        () =>
-            (questionnaire?.questions ?? []).map((q) => ({
-                key: freshKey(),
-                id: q.id,
-                text: q.text,
-            })),
-        [questionnaire?.id],
-    );
+    const nextKey = useRef(questionnaire ? questionnaire.questions.length : 1);
 
     const [title, setTitle] = useState(questionnaire?.title ?? '');
     const [description, setDescription] = useState(
         questionnaire?.description ?? '',
     );
-    const [questions, setQuestions] = useState<QuestionRow[]>(
-        questionnaire ? initialQuestions : [{ key: freshKey(), text: '' }],
+    const [questions, setQuestions] = useState<QuestionRow[]>(() =>
+        initialRows(questionnaire),
     );
 
     const isEdit = questionnaire != null;
 
     const addQuestion = () => {
-        setQuestions((current) => [...current, { key: freshKey(), text: '' }]);
+        const key = `new-${nextKey.current++}`;
+        setQuestions((current) => [...current, { key, text: '' }]);
     };
 
     const removeQuestion = (key: string) => {
@@ -110,9 +108,7 @@ export default function QuestionnaireEdit() {
 
     const copyLink = async () => {
         if (questionnaire) {
-            await navigator.clipboard.writeText(
-                fillPage({ questionnaire: questionnaire.uuid }).url,
-            );
+            await navigator.clipboard.writeText(questionnaire.share_url);
         }
     };
 
@@ -305,7 +301,7 @@ export default function QuestionnaireEdit() {
                             ))}
                         </div>
 
-                        <div className="border-border-default mt-6 border-t pt-5">
+                        <div className="border-border-default mt-6 flex flex-wrap items-center gap-3 border-t pt-5">
                             <Button
                                 onClick={submit}
                                 disabled={
@@ -321,7 +317,6 @@ export default function QuestionnaireEdit() {
                                 <>
                                     <Button
                                         variant="ghost"
-                                        className="ml-3"
                                         onClick={() => {
                                             if (
                                                 questionnaire.status ===
@@ -367,11 +362,7 @@ export default function QuestionnaireEdit() {
                             <div className="mt-3 flex gap-2">
                                 <Input
                                     readOnly
-                                    value={
-                                        fillPage({
-                                            questionnaire: questionnaire.uuid,
-                                        }).url
-                                    }
+                                    value={questionnaire.share_url}
                                     onFocus={(event) =>
                                         event.currentTarget.select()
                                     }
@@ -433,7 +424,7 @@ export default function QuestionnaireEdit() {
 
 function LinkToIndex() {
     return (
-        <Button variant="ghost" className="ml-3" asLink={index.url()}>
+        <Button variant="ghost" asLink={index.url()}>
             Batal
         </Button>
     );

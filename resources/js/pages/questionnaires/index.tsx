@@ -10,7 +10,6 @@ import Modal from '../../components/ui/Modal';
 import Pagination from '../../components/ui/Pagination';
 import type { PaginationLink } from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { create as fillPage } from '../../routes/fill';
 import {
     close,
     create,
@@ -40,6 +39,7 @@ type QuestionnaireCard = {
     questions_count: number;
     responses_count: number;
     updated_at: string;
+    share_url: string;
 };
 
 const statusLabel: Record<QuestionnaireStatus, string> = {
@@ -71,9 +71,7 @@ export default function QuestionnaireIndex() {
     };
 
     const copyLink = async (item: QuestionnaireCard) => {
-        await navigator.clipboard.writeText(
-            fillPage({ questionnaire: item.uuid }).url,
-        );
+        await navigator.clipboard.writeText(item.share_url);
     };
 
     return (
@@ -96,14 +94,16 @@ export default function QuestionnaireIndex() {
                         Cari
                     </Button>
                 </form>
-                <Button asLink={create.url()}>Buat Kuesioner</Button>
+                <Button asLink={create.url()} className="w-full sm:w-auto">
+                    Buat Kuesioner
+                </Button>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {props.questionnaires.data.map((item) => (
                     <Card key={item.id} className="flex flex-col gap-4 p-5">
                         <div className="flex items-start justify-between gap-3">
-                            <h2 className="text-heading truncate text-lg font-semibold">
+                            <h2 className="text-heading min-w-0 truncate text-lg font-semibold">
                                 {item.title}
                             </h2>
                             <StatusBadge status={item.status} />

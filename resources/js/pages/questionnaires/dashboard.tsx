@@ -1,6 +1,7 @@
 import { router, usePage } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
 import { useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
     Bar,
     BarChart,
@@ -32,6 +33,16 @@ import {
     type ExportItem,
     type QuestionnaireStatus,
 } from '../../types';
+
+const tooltipContentStyle: CSSProperties = {
+    maxWidth: 280,
+    whiteSpace: 'normal',
+    wordBreak: 'break-word',
+};
+
+const tooltipLabelStyle: CSSProperties = {
+    whiteSpace: 'normal',
+};
 
 type Props = {
     questionnaire: {
@@ -96,13 +107,30 @@ export default function QuestionnaireDashboard() {
         () =>
             aggregates.per_question.map((q, index) => ({
                 name: `Q${index + 1}`,
-                text: q.text,
                 SDA: q.counts[1] ?? 0,
                 DA: q.counts[2] ?? 0,
                 A: q.counts[3] ?? 0,
                 SA: q.counts[4] ?? 0,
             })),
         [aggregates.per_question],
+    );
+
+    const questionLabels = useMemo(
+        () =>
+            Object.fromEntries(
+                aggregates.per_question.map((q, index) => [
+                    `Q${index + 1}`,
+                    q.text,
+                ]),
+            ) as Record<string, string>,
+        [aggregates.per_question],
+    );
+
+    const questionChartHeight = Math.max(320, barData.length * 44);
+
+    const timelineTickInterval = Math.max(
+        0,
+        Math.ceil(aggregates.timeline.length / 7) - 1,
     );
 
     const donutData = useMemo(
@@ -150,7 +178,12 @@ export default function QuestionnaireDashboard() {
             actions={
                 <>
                     <StatusBadge status={questionnaire.status} />
-                    <Button size="sm" variant="ghost" onClick={copyLink}>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="hidden sm:inline-flex"
+                        onClick={copyLink}
+                    >
                         Salin Link
                     </Button>
                 </>
@@ -167,9 +200,14 @@ export default function QuestionnaireDashboard() {
                     readOnly
                     value={share_url}
                     onFocus={(event) => event.currentTarget.select()}
-                    className="max-w-lg flex-1"
+                    className="max-w-lg min-w-0 flex-1"
                 />
-                <Button size="sm" variant="ghost" onClick={copyLink}>
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    className="flex-none"
+                    onClick={copyLink}
+                >
                     Salin
                 </Button>
             </div>
@@ -190,31 +228,43 @@ export default function QuestionnaireDashboard() {
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card className="p-6">
+                <Card className="min-w-0 p-6">
                     <h2 className="text-heading text-lg font-semibold">
                         Partisipasi per Hari
                     </h2>
                     {aggregates.timeline.length > 0 ? (
-                        <div className="mt-4 h-64">
+                        <div className="mt-4 h-64 min-w-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart
                                     data={aggregates.timeline}
                                     margin={{
                                         top: 4,
-                                        right: 4,
-                                        left: -24,
+                                        right: 8,
+                                        left: -12,
                                         bottom: 0,
                                     }}
                                 >
                                     <XAxis
                                         dataKey="date"
-                                        tick={{ fontSize: 12 }}
+                                        tick={{ fontSize: 10 }}
+                                        tickFormatter={formatShortDate}
+                                        interval={timelineTickInterval}
+                                        minTickGap={8}
+                                        height={28}
                                     />
                                     <YAxis
                                         allowDecimals={false}
                                         tick={{ fontSize: 12 }}
                                     />
-                                    <Tooltip />
+                                    <Tooltip
+                                        contentStyle={tooltipContentStyle}
+                                        labelStyle={tooltipLabelStyle}
+                                        labelFormatter={(label) =>
+                                            typeof label === 'string'
+                                                ? formatFullDate(label)
+                                                : label
+                                        }
+                                    />
                                     <Bar
                                         dataKey="count"
                                         name="Responden"
@@ -229,12 +279,12 @@ export default function QuestionnaireDashboard() {
                     )}
                 </Card>
 
-                <Card className="p-6">
+                <Card className="min-w-0 p-6">
                     <h2 className="text-heading text-lg font-semibold">
                         Distribusi Skala
                     </h2>
                     {aggregates.total > 0 ? (
-                        <div className="mt-4 h-64">
+                        <div className="mt-4 h-64 min-w-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
@@ -253,7 +303,11 @@ export default function QuestionnaireDashboard() {
                                         ))}
                                     </Pie>
                                     <Tooltip />
-                                    <Legend />
+                                    <Legend
+                                        verticalAlign="bottom"
+                                        height={28}
+                                        iconSize={10}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -263,12 +317,15 @@ export default function QuestionnaireDashboard() {
                 </Card>
             </div>
 
-            <Card className="mt-6 p-6">
+            <Card className="mt-6 min-w-0 p-6">
                 <h2 className="text-heading text-lg font-semibold">
                     Jawaban per Pertanyaan
                 </h2>
                 {barData.length > 0 && aggregates.total > 0 ? (
-                    <div className="mt-4 h-[420px]">
+                    <div
+                        className="mt-4 w-full min-w-0"
+                        style={{ height: questionChartHeight }}
+                    >
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart
                                 data={barData}
@@ -288,11 +345,24 @@ export default function QuestionnaireDashboard() {
                                 <YAxis
                                     type="category"
                                     dataKey="name"
-                                    width={48}
+                                    width={52}
+                                    interval={0}
                                     tick={{ fontSize: 12 }}
                                 />
-                                <Tooltip />
-                                <Legend />
+                                <Tooltip
+                                    contentStyle={tooltipContentStyle}
+                                    labelStyle={tooltipLabelStyle}
+                                    labelFormatter={(label) =>
+                                        typeof label === 'string'
+                                            ? (questionLabels[label] ?? label)
+                                            : label
+                                    }
+                                />
+                                <Legend
+                                    verticalAlign="bottom"
+                                    height={28}
+                                    iconSize={10}
+                                />
                                 {SCALE_VALUES.map((value) => (
                                     <Bar
                                         key={value}
@@ -310,7 +380,7 @@ export default function QuestionnaireDashboard() {
             </Card>
 
             <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <Card className="p-6 lg:col-span-2">
+                <Card className="min-w-0 p-6 lg:col-span-2">
                     <h2 className="text-heading text-lg font-semibold">
                         Responden Terakhir
                     </h2>
@@ -321,7 +391,7 @@ export default function QuestionnaireDashboard() {
                                     <th className="px-4 py-3 font-medium">
                                         Responden
                                     </th>
-                                    <th className="px-4 py-3 font-medium">
+                                    <th className="hidden px-4 py-3 font-medium sm:table-cell">
                                         Email
                                     </th>
                                     <th className="px-4 py-3 font-medium">
@@ -339,7 +409,7 @@ export default function QuestionnaireDashboard() {
                                         <td className="text-heading px-4 py-4 font-medium">
                                             {response.user?.name ?? 'Peserta'}
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="hidden px-4 py-4 sm:table-cell">
                                             {response.user?.email ?? '-'}
                                         </td>
                                         <td className="px-4 py-4">
@@ -442,9 +512,9 @@ export default function QuestionnaireDashboard() {
                     {exports.map((item) => (
                         <li
                             key={item.id}
-                            className="border-border-default bg-neutral-secondary-soft flex items-center justify-between gap-4 rounded-none border px-4 py-3"
+                            className="border-border-default bg-neutral-secondary-soft flex flex-col gap-3 rounded-none border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                         >
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-3">
                                 <span className="text-heading text-sm font-semibold uppercase">
                                     {item.type === 'pdf' ? 'PDF' : 'Excel'}
                                 </span>
@@ -503,7 +573,7 @@ function Stat({
                 {label}
             </p>
             <p
-                className={`mt-1 text-3xl font-bold tracking-tight ${accent === 'variant-vivid' ? 'text-white' : 'text-heading'}`}
+                className={`mt-1 text-2xl font-bold tracking-tight sm:text-3xl ${accent === 'variant-vivid' ? 'text-white' : 'text-heading'}`}
             >
                 {Number.isInteger(value)
                     ? value.toLocaleString('id-ID')
@@ -565,6 +635,52 @@ function formatDate(value: string): string {
         month: 'long',
         year: 'numeric',
     });
+}
+
+const MONTHS_LONG = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+];
+
+function splitIsoDate(value: string): [string, number, number] | null {
+    const [year, month, day] = value.split('-');
+    if (!year || !month || !day) {
+        return null;
+    }
+
+    return [year, Number(month) - 1, Number(day)];
+}
+
+function formatShortDate(value: string): string {
+    const parts = splitIsoDate(value);
+    if (!parts) {
+        return value;
+    }
+
+    const [, monthIndex, day] = parts;
+    const month = String(monthIndex + 1).padStart(2, '0');
+    const dayPadded = String(day).padStart(2, '0');
+    return `${dayPadded}/${month}`;
+}
+
+function formatFullDate(value: string): string {
+    const parts = splitIsoDate(value);
+    if (!parts) {
+        return value;
+    }
+
+    const [year, monthIndex, day] = parts;
+    return `${day} ${MONTHS_LONG[monthIndex] ?? monthIndex + 1} ${year}`;
 }
 
 function formatDateTime(value: string): string {

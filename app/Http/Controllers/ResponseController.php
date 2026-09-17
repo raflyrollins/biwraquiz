@@ -14,6 +14,33 @@ use Inertia\Response as InertiaResponse;
 
 class ResponseController extends Controller
 {
+    public function mine(Request $request): InertiaResponse
+    {
+        $responses = $request->user()->responses()
+            ->whereHas('questionnaire')
+            ->withCount('answers')
+            ->with(['questionnaire' => fn ($query) => $query->withCount('questions')])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $items = $responses->map(fn (Response $response): array => [
+            'uuid' => $response->questionnaire->uuid,
+            'title' => $response->questionnaire->title,
+            'description' => $response->questionnaire->description,
+            'questionnaire_status' => $response->questionnaire->status,
+            'response_status' => $response->status,
+            'answered' => $response->answers_count,
+            'total' => $response->questionnaire->questions_count,
+            'updated_at' => $response->updated_at?->toIso8601String(),
+            'submitted_at' => $response->submitted_at?->toIso8601String(),
+        ]);
+
+        return Inertia::render('my/index', [
+            'in_progress' => $items->where('response_status', Response::STATUS_IN_PROGRESS)->values(),
+            'completed' => $items->where('response_status', Response::STATUS_COMPLETED)->values(),
+        ]);
+    }
+
     public function create(Request $request, Questionnaire $questionnaire): InertiaResponse
     {
         if (! $questionnaire->isPublished() && $questionnaire->user_id !== $request->user()->id) {
@@ -70,10 +97,7 @@ class ResponseController extends Controller
                 'submitted_at' => now(),
             ]);
 
-            $aggregates = app(QuestionnaireAggregator::class)->aggregate($questionnaire);
-
-            ResponseSaved::dispatch($questionnaire, $aggregates, $request->user()->name);
-
+            ResponseSaved::dispatch($questionnaire, $request->user()->name);
         }
 
         return redirect()->route('fill.create', $questionnaire->uuid)->with('success', 'Jawaban berhasil disimpan.');

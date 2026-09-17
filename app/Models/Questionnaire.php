@@ -21,6 +21,7 @@ use Ramsey\Uuid\Uuid;
  * @property string $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read int $questions_count
  */
 #[Fillable(['uuid', 'user_id', 'title', 'description', 'slug', 'status'])]
 class Questionnaire extends Model
